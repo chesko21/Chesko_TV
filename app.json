@@ -4,31 +4,106 @@
       [
         "@react-native-tvos/config-tv",
         {
-          "androidTVBanner": "./assets/images/icon-400x240.png",
+          "androidTVBanner": "./assets/images/maskable.png",
           "appleTVImages": {
-            "icon": "./assets/images/icon-1280x768.png",
-            "iconSmall": "./assets/images/icon-400x240.png",
-            "iconSmall2x": "./assets/images/icon-800x480.png",
-            "topShelf": "./assets/images/icon-1920x720.png",
-            "topShelf2x": "./assets/images/icon-3840x1440.png",
-            "topShelfWide": "./assets/images/icon-2320x720.png",
-            "topShelfWide2x": "./assets/images/icon-4640x1440.png"
+            "icon": "./assets/images/maskable.png",
+            "iconSmall": "./assets/images/maskable.png",
+            "iconSmall2x": "./assets/images/maskable.png",
+            "topShelf": "./assets/images/tv_banner.png",
+            "topShelf2x": "./assets/images/tv_banner.png",
+            "topShelfWide": "./assets/images/tv_banner.png",
+            "topShelfWide2x": "./assets/images/tv_banner.png"
           }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "../../node_modules/react-native-video/android"
+            ]
+          }
+        }
+      ],
+      [
+        "react-native-video",
+        {
+          "platforms": {
+            "android": {
+              "sourceDir": "../node_modules/react-native-video/android-exoplayer"
+            }
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "orientation": "LANDSCAPE"
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "LANDSCAPE"
+        }
+      ],
+      [
+        "expo-asset",
+        {
+          "assets": ["assets"]
         }
       ]
     ],
+	"icon": "./assets/images/maskable.png",
     "android": {
       "splash": {
-        "image": "./assets/images/icon-1920x720.png"
-      }
+        "resizeMode": "contain",
+        "backgroundColor": "#020f1f",
+        "image": "./assets/images/tv_banner.png",
+        "orientation": "LANDSCAPE"
+      },
+      "package": "com.chesko25.chesko_tv",
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_NETWORK_STATE",
+        "POST_NOTIFICATIONS",
+        "INTERNET"                        
+      ],
+      "runtimeVersion": "1.0.0"
     },
     "ios": {
       "splash": {
-        "image": "./assets/images/icon-1920x720.png"
+        "image": "./assets/images/tv_banner.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#020f1f",
+        "orientation": "LANDSCAPE"
+      },
+      "supportsTablet": true,
+      "bundleIdentifier": "yes",
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "newArchEnabled": true,
     "name": "Chesko_TV",
-    "slug": "Chesko_TV"
+    "slug": "Chesko_TV",
+    "orientation": "LANDSCAPE",
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "99ace541-8853-4dfa-8d25-b96d240d4586"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/99ace541-8853-4dfa-8d25-b96d240d4586"
+    }
   }
 }
