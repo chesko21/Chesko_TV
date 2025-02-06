@@ -48,8 +48,10 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const activeUrlListener = DeviceEventEmitter.addListener("ActiveURLChanged", (newUrl) => {
+      console.log("Active URL changed:", newUrl);  // Debug this line
       fetchPlaylist(newUrl);
     });
+    
   
     return () => {
       activeUrlListener.remove();
@@ -70,6 +72,7 @@ const HomeScreen = () => {
         setChannels(Array.isArray(data.items) ? data.items : []);
       }
     } catch (err: any) {
+      console.error("Error fetching playlist:", err);  // Added logging for errors
       if (isMounted.current) {
         setError(`Failed to load playlist: ${err.message}`);
       }
@@ -80,11 +83,13 @@ const HomeScreen = () => {
     }
   };
   
+  
   const loadActivePlaylistUrl = async () => {
     try {
       const savedUrlsString = await AsyncStorage.getItem(PLAYLIST_URLS_KEY);
       if (savedUrlsString) {
         const savedUrls = JSON.parse(savedUrlsString);
+        console.log("Loaded URLs:", savedUrls); // Add logging to inspect savedUrls
         const activeUrlObj = savedUrls.find((item: any) => item.isActive);
         if (activeUrlObj && activeUrlObj.url) {
           fetchPlaylist(activeUrlObj.url);
@@ -96,6 +101,7 @@ const HomeScreen = () => {
       }
     } catch (error) {
       setError("Failed to retrieve active playlist URL.");
+      console.error("Error loading URLs:", error);
     }
   };
   
@@ -230,8 +236,16 @@ const HomeScreen = () => {
           isFocused && styles.focusedChannel,
         ]}
       >
-        <Image source={{ uri: item?.tvg?.logo || defaultLogo }} style={styles.channelLogo} />
-        <Text style={styles.channelName}>{item.name}</Text>
+<Image
+  source={
+    item?.tvg?.logo && item.tvg.logo.startsWith("http")
+      ? { uri: item.tvg.logo }
+      : defaultLogo
+  }
+  style={styles.channelLogo}
+/>
+
+<Text style={styles.channelName}>{item.name}</Text>
         <Pressable
           focusable={true}
           onFocus={() => setFocusedFavorite(item.url)}
@@ -310,7 +324,8 @@ const HomeScreen = () => {
                 <FlatList
                   data={groupedChannels[selectedGroup] || []}
                   renderItem={renderChannel}
-                  keyExtractor={(item) => item.id || `${item.url}-${item.name}`}
+                  keyExtractor={(item) => item.id ? item.id.toString() : `${item.url}-${item.name}`}
+
                   numColumns={5}
                 />
               ) : (
