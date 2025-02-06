@@ -4,11 +4,11 @@
       [
         "@react-native-tvos/config-tv",
         {
-          "androidTVBanner": "./assets/images/maskable.png",
+          "androidTVBanner": "./assets/images/tv_banner.png",
           "appleTVImages": {
-            "icon": "./assets/images/maskable.png",
-            "iconSmall": "./assets/images/maskable.png",
-            "iconSmall2x": "./assets/images/maskable.png",
+            "icon": "./assets/images/tv_banner.png",
+            "iconSmall": "./assets/images/tv_banner.png",
+            "iconSmall2x": "./assets/images/tv_banner.png",
             "topShelf": "./assets/images/tv_banner.png",
             "topShelf2x": "./assets/images/tv_banner.png",
             "topShelfWide": "./assets/images/tv_banner.png",
@@ -51,14 +51,16 @@
       [
         "expo-asset",
         {
-          "assets": ["assets"]
+          "assets": [
+            "assets"
+          ]
         }
       ]
     ],
-	"icon": "./assets/images/maskable.png",
+    "icon": "./assets/images/tv_banner.png",
     "android": {
       "splash": {
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#020f1f",
         "image": "./assets/images/tv_banner.png",
         "orientation": "LANDSCAPE"
@@ -69,14 +71,14 @@
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_NETWORK_STATE",
         "POST_NOTIFICATIONS",
-        "INTERNET"                        
+        "INTERNET"
       ],
       "runtimeVersion": "1.0.0"
     },
     "ios": {
       "splash": {
         "image": "./assets/images/tv_banner.png",
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#020f1f",
         "orientation": "LANDSCAPE"
       },
@@ -99,11 +101,8 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "99ace541-8853-4dfa-8d25-b96d240d4586"
+        "projectId": "b5a57482-7d8e-4d43-b3ab-8bb3e06a99a4"
       }
-    },
-    "updates": {
-      "url": "https://u.expo.dev/99ace541-8853-4dfa-8d25-b96d240d4586"
     }
   }
 }

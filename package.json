@@ -1,5 +1,5 @@
 {
-  "name": "chesko_tv",
+  "name": "Chesko_TV",
   "version": "1.0.0",
   "scripts": {
     "start": "cross-env EXPO_TV=1 expo start",
@@ -15,6 +15,7 @@
     "@react-native-community/slider": "4.5.5",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/stack": "^7.1.1",
+    "@types/node": "^22.13.1",
     "axios": "^1.7.9",
     "expo": "~52.0.23",
     "expo-asset": "~11.0.3",
@@ -27,6 +28,7 @@
     "expo-splash-screen": "~0.29.18",
     "expo-status-bar": "~2.0.0",
     "iptv-playlist-parser": "^0.13.0",
+    "js-base64": "^3.7.7",
     "lottie-react-native": "7.1.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
@@ -8,6 +9,7 @@ import {
   ImageBackground,
   BackHandler,
   Pressable,
+  DeviceEventEmitter
 } from "react-native";
 import { fetchAndParsePlaylist } from "../utils/ParsePlaylist";
 import { useNavigation } from "@react-navigation/native";
@@ -34,7 +36,7 @@ const HomeScreen = () => {
   const [focusedChannel, setFocusedChannel] = useState<string | null>(null);
   const [focusedGroup, setFocusedGroup] = useState<string | null>(null);
   const [focusedFavorite, setFocusedFavorite] = useState<string | null>(null);
-
+  
   const navigation = useNavigation();
   const isMounted = useRef(true);
 
@@ -44,6 +46,16 @@ const HomeScreen = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const activeUrlListener = DeviceEventEmitter.addListener("ActiveURLChanged", (newUrl) => {
+      fetchPlaylist(newUrl);
+    });
+  
+    return () => {
+      activeUrlListener.remove();
+    };
+  }, []);
+  
   const fetchPlaylist = async (playlistUrl: string) => {
     if (!playlistUrl) {
       setError("Cannot load an empty URL.");
@@ -51,8 +63,8 @@ const HomeScreen = () => {
     }
     try {
       setIsLoading(true);
-    //  console.log("Fetching playlist from URL:", playlistUrl);
       const data = await fetchAndParsePlaylist(playlistUrl);
+  
       await AsyncStorage.setItem(PLAYLIST_KEY, JSON.stringify(data.items));
       if (isMounted.current) {
         setChannels(Array.isArray(data.items) ? data.items : []);
@@ -67,7 +79,7 @@ const HomeScreen = () => {
       }
     }
   };
-
+  
   const loadActivePlaylistUrl = async () => {
     try {
       const savedUrlsString = await AsyncStorage.getItem(PLAYLIST_URLS_KEY);
@@ -75,27 +87,24 @@ const HomeScreen = () => {
         const savedUrls = JSON.parse(savedUrlsString);
         const activeUrlObj = savedUrls.find((item: any) => item.isActive);
         if (activeUrlObj && activeUrlObj.url) {
-       //   console.log("Active playlist URL found:", activeUrlObj.url);
           fetchPlaylist(activeUrlObj.url);
         } else {
-        //  console.log("No active URL found, using default URL.");
           fetchPlaylist(DEFAULT_PLAYLIST_URL);
         }
       } else {
-      //  console.log("No savedUrls key found, using default URL.");
         fetchPlaylist(DEFAULT_PLAYLIST_URL);
       }
     } catch (error) {
       setError("Failed to retrieve active playlist URL.");
-    //  console.error("Error retrieving active playlist URL:", error);
     }
   };
-
+  
+  
+  
   useEffect(() => {
     loadActivePlaylistUrl();
   }, []);
 
-  // Load favorite channels and last watched from AsyncStorage.
   useEffect(() => {
     const loadFavorites = async () => {
       try {
@@ -149,7 +158,12 @@ const HomeScreen = () => {
   };
 
   const handleChannelPress = (channel: any) => {
+    if (!channel.license || !channel.license.license_key) {
+      console.warn("License data is missing! Proceeding without DRM.");
+    }
+  
     navigation.navigate("VideoScreen", { channel });
+
     setLastWatched((prev: any[]) => {
       const updatedLastWatched = [
         channel,
@@ -159,6 +173,8 @@ const HomeScreen = () => {
       return updatedLastWatched;
     });
   };
+  
+  
 
   const handleFavoriteToggle = useCallback((channel: any) => {
     setFavoriteChannels((prev) => {

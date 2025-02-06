@@ -35,13 +35,15 @@ export const fetchAndParsePlaylist = async (url: string) => {
       name: "",
       headers: { Referer: "", "User-Agent": "" },
     };
-    let licenseData: LicenseData = {};
+    let licenseData: { license_type?: string; license_key?: string } = {};
     let headers = {
       Referer: "",
       "User-Agent": "",
     };
 
-    // Parsing Playlist M3U
+    const licenseTypeRegex = /^#KODIPROP:inputstream\.adaptive\.license_type=(.+)$/;
+    const licenseKeyRegex = /^#KODIPROP:inputstream\.adaptive\.license_key=(.+)$/;
+
     lines.forEach((line) => {
       line = line.trim();
 
@@ -51,6 +53,7 @@ export const fetchAndParsePlaylist = async (url: string) => {
           globalMetadata["refresh"] = refreshMatch[1];
         }
       } else if (line.startsWith("#EXTINF:")) {
+        // Reset untuk setiap channel baru
         currentItem = { name: "", headers: { Referer: "", "User-Agent": "" } };
         licenseData = {};
 
@@ -62,26 +65,29 @@ export const fetchAndParsePlaylist = async (url: string) => {
         const matchGroupTitle = line.match(/group-title="([^"]+)"/);
 
         currentItem.tvg = {
-          id: matchTvgId ? matchTvgId[1] : null, // Ensuring we capture the tvg-id properly
-          logo: matchTvgLogo ? matchTvgLogo[1] : null, // Ensure logo is also captured
+          id: matchTvgId ? matchTvgId[1] : null,
+          logo: matchTvgLogo ? matchTvgLogo[1] : null,
         };
 
         currentItem.group = {
           title: matchGroupTitle ? matchGroupTitle[1] : null,
         };
       } else if (line.startsWith("#KODIPROP")) {
-        if (line.startsWith("#KODIPROP:inputstream.adaptive.license_type=")) {
-          const licenseType = line.substring(line.indexOf("=") + 1).trim();
-          licenseData.license_type = licenseType;
+        const typeMatch = line.match(licenseTypeRegex);
+        if (typeMatch) {
+          licenseData.license_type = typeMatch[1].trim();
+         // console.log("Parsed license type:", licenseData.license_type);
         }
 
-        if (line.startsWith("#KODIPROP:inputstream.adaptive.license_key=")) {
-          const licenseKey = line.substring(line.indexOf("=") + 1).trim();
-          licenseData.license_key = licenseKey;
+        const keyMatch = line.match(licenseKeyRegex);
+        if (keyMatch) {
+          licenseData.license_key = keyMatch[1].trim();
+         // console.log("Parsed license key:", licenseData.license_key);
         }
 
         if (licenseData.license_type && licenseData.license_key) {
           currentItem.license = { ...licenseData };
+         // console.log("Assigned license to currentItem:", currentItem.license);
         }
       } else if (line.startsWith("#EXTVLCOPT:http-referrer=")) {
         headers.Referer = line.substring(line.indexOf("=") + 1).trim();
@@ -103,10 +109,11 @@ export const fetchAndParsePlaylist = async (url: string) => {
     });
 
     return { metadata: globalMetadata, items: channels };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching or parsing the playlist:', error.message);
     throw new Error('Error fetching or parsing the playlist: ' + error.message);
   }
 };
+
 
 export default fetchAndParsePlaylist;
