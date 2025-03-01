@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef,useMemo  } from "react";
 import { View, Text, StyleSheet, Dimensions, BackHandler, Platform, Image, Button } from "react-native";
 import Video, { DRMType } from "react-native-video";
 import { useRoute } from "@react-navigation/native";
@@ -7,6 +7,8 @@ import Toast from "react-native-toast-message";
 import NetInfo from "@react-native-community/netinfo";
 import * as Animatable from "react-native-animatable";
 import { Base64 } from 'js-base64';
+import { Buffer } from "buffer";
+
 
 Dimensions.get("window");
 const AUTO_HIDE_TIME = 10000;
@@ -86,10 +88,11 @@ const VideoScreen = () => {
   };
 
   const reloadVideo = () => {
+    setIsLoading(true);
     setReloadKey((prev) => prev + 1);
-    setIsLoading(false);
     setErrorMessage(null);
   };
+
 
   const onEnd = () => {
     setIsPaused(true);
@@ -103,72 +106,106 @@ const VideoScreen = () => {
     }
   };
 
+
   const onError = (error) => {
     const errorMessage = error.error?.errorString || "Unknown error";
+    console.error("Video Playback Error:", errorMessage);
+
     setErrorMessage(errorMessage);
     setIsLoading(false);
+    setIsPaused(true); // Hentikan pemutaran jika ada error
+
     if (errorMessage.includes("DRM")) {
-      Toast.show({
-        type: "error",
-        position: "top",
-        text1: "DRM License Error",
-        text2: "This video cannot be played due to DRM restrictions.",
-      });
+        Toast.show({
+            type: "error",
+            position: "top",
+            text1: "DRM Error",
+            text2: "ClearKey DRM mungkin tidak cocok atau salah konfigurasi.",
+        });
+    } else {
+        Toast.show({
+            type: "error",
+            position: "top",
+            text1: "Playback Error",
+            text2: errorMessage,
+        });
     }
-    reloadVideo();
-  };
-
-  const getDRMType = (licenseType: string, licenseKey: string) => {
-
-    if (licenseType === "clearkey" || licenseType === "org.w3.clearkey") {
-      const [key, keyId] = licenseKey.split(":");
+};
 
 
-      if (key && keyId) {
+const hexToBase64 = (hex) => {
+  if (!/^[a-fA-F0-9]+$/.test(hex)) {
+    console.warn(`Invalid HEX input: ${hex}`);
+    return null;
+  }
+  const base64 = Buffer.from(hex, "hex").toString("base64");
+  // Konversi Base64 standar ke Base64 URL-safe
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
 
 
-        return {
-          type: DRMType.CLEARKEY,
-          keys: [
-            {
-              kty: "oct",
-              k: key,
-              kid: keyId
-            }
-          ],
-          type: "temporary"
-        };
+const getDRMType = (licenseType, licenseKey) => {
+  if (!licenseType || !licenseKey) return undefined;
+
+  if (licenseType.toLowerCase() === "clearkey") {
+    const keyPairs = {};
+    
+    console.log("Raw DRM Keys:", licenseKey);  // Log raw keys sebelum splitting
+    
+    licenseKey.split(",").forEach(pair => {
+      const [kid, key] = pair.split(":").map(item => item.trim());
+      console.log(`Raw KID: ${kid}, Raw Key: ${key}`); // Log masing-masing KID/Key sebelum konversi
+
+      const base64Kid = hexToBase64(kid);
+      const base64Key = hexToBase64(key);
+
+      if (base64Kid && base64Key) {
+        keyPairs[base64Kid] = base64Key;
       } else {
-        console.error("Invalid ClearKey format: missing key or keyId.");
-        return undefined;
+        console.warn(`Invalid DRM Key Pair: KID=${kid}, Key=${key}`);
       }
+    });
+
+    if (Object.keys(keyPairs).length === 0) {
+      console.warn("Invalid ClearKey DRM configuration");
+      return undefined;
     }
 
-    else if (licenseType === "com.widevine.alpha") {
+    return {
+      type: "clearkey",
+      keys: keyPairs,
+      headers: {},
+    };
+  }
 
-      return {
-        type: DRMType.WIDEVINE,
-        licenseServer: licenseKey,
-      };
-    }
+  if (licenseType.toLowerCase() === "widevine" || licenseType === "com.widevine.alpha") {
+    return {
+      type: "widevine",
+      licenseServer: licenseKey,
+      headers: {},
+    };
+  }
 
-    console.log("No DRM Configuration matched.");
-    return undefined;
-  };
+  return undefined;
+};
 
-  const drmConfig = channel.license?.license_key
+
+const drmConfig = useMemo(() => {
+  return channel.license?.license_key
     ? getDRMType(channel.license.license_type, channel.license.license_key)
     : undefined;
+}, [channel.license?.license_key]);
 
-  console.log("DRM Config:", drmConfig);
+console.log("Final DRM Config:", JSON.stringify(drmConfig, null, 2));
 
   const onLoad = (data) => {
-    if (duration !== data.duration) {
-      setDuration(data.duration);
-    }
-    setIsLoading(false);
-    setIsBuffering(false);
-    setErrorMessage(null);
+    setTimeout(() => {
+      setIsLoading(false);
+      setIsBuffering(false);
+      setErrorMessage(null);
+    }, 1000);
+
+    setDuration(data.duration);
     setMetadata({
       duration: data.duration,
       tvgId: channel.tvg?.id || "Unknown",
@@ -177,6 +214,7 @@ const VideoScreen = () => {
       licenseKey: channel.license?.license_key || "No License Key",
     });
   };
+
 
   const renderMetadata = () => {
     return (
@@ -227,10 +265,17 @@ const VideoScreen = () => {
     <View style={styles.container} onTouchStart={handleScreenTap}>
       {isLoading && !errorMessage && (
         <View style={styles.loadingContainer}>
-          <LottieView source={require("../../assets/animasi/loading.json")} autoPlay loop style={styles.lottie} />
+          <LottieView
+            key={reloadKey}
+            source={require("../../assets/animasi/loading.json")}
+            autoPlay
+            loop
+            style={styles.lottie}
+          />
           <Text style={styles.loadingText}>Loading Video...</Text>
         </View>
       )}
+
 
       {isBuffering && !isLoading && !errorMessage && (
         <View style={styles.loadingContainer}>
@@ -240,18 +285,17 @@ const VideoScreen = () => {
       )}
 
       {errorMessage && renderError()}
-
       <Video
-        style={styles.video}
-        ref={playerRef}
         source={{
           uri: channel.url,
           headers: {
             Referer: channel.headers?.Referer,
             "User-Agent": channel.headers?.["User-Agent"],
-          }
+          },
+          drm: drmConfig
         }}
-        drm={drmConfig}
+        style={styles.video}
+        ref={playerRef}
         onBuffer={onBuffer}
         onError={onError}
         onLoad={onLoad}
@@ -279,12 +323,17 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -50 }, { translateY: -50 }],
+    flex: 1,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
+
   lottie: {
     width: 150,
     height: 150,

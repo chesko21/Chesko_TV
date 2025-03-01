@@ -48,7 +48,7 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const activeUrlListener = DeviceEventEmitter.addListener("ActiveURLChanged", (newUrl) => {
-      console.log("Active URL changed:", newUrl);  // Debug this line
+      console.log("Active URL changed:", newUrl); 
       fetchPlaylist(newUrl);
     });
     
@@ -72,7 +72,7 @@ const HomeScreen = () => {
         setChannels(Array.isArray(data.items) ? data.items : []);
       }
     } catch (err: any) {
-      console.error("Error fetching playlist:", err);  // Added logging for errors
+      console.error("Error fetching playlist:", err); 
       if (isMounted.current) {
         setError(`Failed to load playlist: ${err.message}`);
       }
@@ -89,7 +89,7 @@ const HomeScreen = () => {
       const savedUrlsString = await AsyncStorage.getItem(PLAYLIST_URLS_KEY);
       if (savedUrlsString) {
         const savedUrls = JSON.parse(savedUrlsString);
-        console.log("Loaded URLs:", savedUrls); // Add logging to inspect savedUrls
+        console.log("Loaded URLs:", savedUrls); 
         const activeUrlObj = savedUrls.find((item: any) => item.isActive);
         if (activeUrlObj && activeUrlObj.url) {
           fetchPlaylist(activeUrlObj.url);
@@ -136,7 +136,6 @@ const HomeScreen = () => {
     loadLastWatched();
   }, []);
 
-  // Action Handlers
   const handleReload = async () => {
     setIsReloading(true);
     await loadActivePlaylistUrl();
@@ -165,7 +164,6 @@ const HomeScreen = () => {
 
   const handleChannelPress = (channel: any) => {
     if (!channel.license || !channel.license.license_key) {
-      console.warn("License data is missing! Proceeding without DRM.");
     }
   
     navigation.navigate("VideoScreen", { channel });
@@ -207,7 +205,7 @@ const HomeScreen = () => {
     if (favoriteGroup.length > 0) {
       grouped["Favorit"] = favoriteGroup;
     }
-    const recentGroup = Array.isArray(lastWatched) ? lastWatched.slice(0, 5) : [];
+    const recentGroup = Array.isArray(lastWatched) ? lastWatched.slice(0, 20) : [];
     if (recentGroup.length > 0) {
       grouped["Recents Watch"] = recentGroup;
     }
@@ -224,31 +222,33 @@ const HomeScreen = () => {
   );
 
   const renderChannel = ({ item }: { item: any }) => {
-    const isFocused = focusedChannel === item.url;
-    const isFavoriteFocused = focusedFavorite === item.url;
+    const isFocused = focusedChannel === item?.url;
+    const isFavoriteFocused = focusedFavorite === item?.url;
+    const isFavorite = favoriteChannels.has(item?.url);
+    const logoUri =
+      item?.tvg?.logo && /^(http|https):\/\//.test(item.tvg.logo)
+        ? { uri: item.tvg.logo }
+        : defaultLogo;
+  
+    const truncatedName = item?.name?.length > 12 ? `${item.name.slice(0, 12)}...` : item?.name;
+  
     return (
       <Pressable
         focusable={true}
-        onFocus={() => setFocusedChannel(item.url)}
+        onFocus={() => setFocusedChannel(item?.url)}
         onPress={() => handleChannelPress(item)}
         style={[
           styles.channelContainer,
           isFocused && styles.focusedChannel,
         ]}
       >
-<Image
-  source={
-    item?.tvg?.logo && item.tvg.logo.startsWith("http")
-      ? { uri: item.tvg.logo }
-      : defaultLogo
-  }
-  style={styles.channelLogo}
-/>
-
-<Text style={styles.channelName}>{item.name}</Text>
+        <Image source={logoUri} style={styles.channelLogo} />
+        <Text style={styles.channelName}>{truncatedName}</Text>
+  
+        {/* Tombol Favorite */}
         <Pressable
           focusable={true}
-          onFocus={() => setFocusedFavorite(item.url)}
+          onFocus={() => setFocusedFavorite(item?.url)}
           onBlur={() => setFocusedFavorite(null)}
           onPress={() => handleFavoriteToggle(item)}
           style={[
@@ -257,15 +257,15 @@ const HomeScreen = () => {
           ]}
         >
           <Icon
-            name={favoriteChannels.has(item.url) ? "favorite" : "favorite-border"}
+            name={isFavorite ? "favorite" : "favorite-border"}
             size={24}
-            color={favoriteChannels.has(item.url) ? "#ff4081" : "#0A0B00"}
+            color={isFavorite ? "#ff4081" : "#0A0B00"}
           />
         </Pressable>
       </Pressable>
     );
   };
-
+  
   const renderGroupItem = ({ item }: { item: string }) => {
     const isFocused = focusedGroup === item;
     return (

@@ -2576,6 +2576,14 @@ buffer@^5.4.3:
     base64-js "^1.3.1"
     ieee754 "^1.1.13"
 
+buffer@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/buffer/-/buffer-6.0.3.tgz#2ace578459cc8fbe2a70aaa8f52ee63b6a74c6c6"
+  integrity sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==
+  dependencies:
+    base64-js "^1.3.1"
+    ieee754 "^1.2.1"
+
 bytes@3.1.2:
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/bytes/-/bytes-3.1.2.tgz#8b0beeb98605adf1b128fa4386403c009e0221a5"
@@ -3727,7 +3735,7 @@ human-signals@^2.1.0:
   resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-2.1.0.tgz#dc91fcba42e4d06e4abaed33b3e7a3c02f514ea0"
   integrity sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==
 
-ieee754@^1.1.13:
+ieee754@^1.1.13, ieee754@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/ieee754/-/ieee754-1.2.1.tgz#8eb7a10a63fff25d15a57b001586d177d1b0d352"
   integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
@@ -5247,6 +5255,19 @@ react-native-animatable@^1.4.0:
   dependencies:
     prop-types "^15.8.1"
 
+react-native-buffer@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/react-native-buffer/-/react-native-buffer-6.0.3.tgz#74af81e1ca5fc5e2d539f0242cf57df7e6a645c6"
+  integrity sha512-zZ0+TytQukFkdq7l9VQ8eypY83qQLMYNNVA+1skHQWcjXWRxsJvR6TAW4/HwD1FTLIySQt7cyvbNYSO30RuNvA==
+  dependencies:
+    ieee754 "^1.2.1"
+    react-native-fast-base64 "^0.1.1"
+
+react-native-fast-base64@^0.1.1:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/react-native-fast-base64/-/react-native-fast-base64-0.1.2.tgz#1f2c88a8b07b543b2f9057c98e1ed2f7e960444f"
+  integrity sha512-LBwGGdAQirfU++1r4DX1ufkWKUhY6wwVEbVhyH247YXeubW0jxl7+yl8xlOchz6W/J1KFzXrGTcMiHlv+OpIig==
+
 react-native-gesture-handler@~2.20.2:
   version "2.20.2"
   resolved "https://registry.yarnpkg.com/react-native-gesture-handler/-/react-native-gesture-handler-2.20.2.tgz#73844c8e9c417459c2f2981bc4d8f66ba8a5ee66"
@@ -5261,6 +5282,13 @@ react-native-permissions@^5.2.4:
   version "5.2.5"
   resolved "https://registry.yarnpkg.com/react-native-permissions/-/react-native-permissions-5.2.5.tgz#c431b7dc15213dd87cebad0ba5658eaf7c30efd3"
   integrity sha512-pECev4EuA+XAq9kduJu9V5OtqKlOokf+5lawPmkTHvr6LoOl6VLZlI2Ue4tnOu1PLc6tQaG19kQ5gbKG4gyNAw==
+
+react-native-quick-base64@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/react-native-quick-base64/-/react-native-quick-base64-2.1.2.tgz#062b09b165c1530095fe99b94544c948318dbe99"
+  integrity sha512-xghaXpWdB0ji8OwYyo0fWezRroNxiNFCNFpGUIyE7+qc4gA/IGWnysIG5L0MbdoORv8FkTKUvfd6yCUN5R2VFA==
+  dependencies:
+    base64-js "^1.5.1"
 
 react-native-reanimated@~3.16.1:
   version "3.16.7"
@@ -5296,6 +5324,13 @@ react-native-system-setting@^1.7.6:
   version "1.7.6"
   resolved "https://registry.yarnpkg.com/react-native-system-setting/-/react-native-system-setting-1.7.6.tgz#43633604ac1bd5fd906acdbffa627a1998d2345a"
   integrity sha512-nBnIK5Xnyu8XRRA3BMzRI54oYlSBKc0oOTQdZOCEeOvn4ltS1nk2shj/vtMQe6khXvuhai3vIc+g7DcsOcr5+w==
+
+react-native-theoplayer@^8.13.1:
+  version "8.13.1"
+  resolved "https://registry.yarnpkg.com/react-native-theoplayer/-/react-native-theoplayer-8.13.1.tgz#b31565fc81567f6e636ed5f31b2f485573969524"
+  integrity sha512-y5kuyXO6ADdX7Q3qnxUgrwCWrXAGiznEddPMqZNTq0s+gQznzfSFixJeFy1CZK9KxjjHNlMMFF8WQH/C1DxTfA==
+  dependencies:
+    buffer "^6.0.3"
 
 react-native-toast-message@^2.2.1:
   version "2.2.1"
