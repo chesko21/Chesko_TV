@@ -113,7 +113,7 @@ const VideoScreen = () => {
 
     setErrorMessage(errorMessage);
     setIsLoading(false);
-    setIsPaused(true); // Hentikan pemutaran jika ada error
+    setIsPaused(true); 
 
     if (errorMessage.includes("DRM")) {
         Toast.show({
@@ -139,7 +139,6 @@ const hexToBase64 = (hex) => {
     return null;
   }
   const base64 = Buffer.from(hex, "hex").toString("base64");
-  // Konversi Base64 standar ke Base64 URL-safe
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
@@ -150,11 +149,11 @@ const getDRMType = (licenseType, licenseKey) => {
   if (licenseType.toLowerCase() === "clearkey") {
     const keyPairs = {};
     
-    console.log("Raw DRM Keys:", licenseKey);  // Log raw keys sebelum splitting
+    console.log("Raw DRM Keys:", licenseKey); 
     
     licenseKey.split(",").forEach(pair => {
       const [kid, key] = pair.split(":").map(item => item.trim());
-      console.log(`Raw KID: ${kid}, Raw Key: ${key}`); // Log masing-masing KID/Key sebelum konversi
+      console.log(`Raw KID: ${kid}, Raw Key: ${key}`);
 
       const base64Kid = hexToBase64(kid);
       const base64Key = hexToBase64(key);
