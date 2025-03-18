@@ -1,10 +1,5 @@
 import axios from "axios";
 
-interface LicenseData {
-  license_type?: string;
-  license_key?: string;
-}
-
 interface Channel {
   name: string;
   url?: string;
@@ -15,7 +10,6 @@ interface Channel {
   group?: {
     title: string | null;
   };
-  license?: LicenseData;
   headers: {
     Referer: string;
     "User-Agent": string;
@@ -35,14 +29,10 @@ export const fetchAndParsePlaylist = async (url: string) => {
       name: "",
       headers: { Referer: "", "User-Agent": "" },
     };
-    let licenseData: { license_type?: string; license_key?: string } = {};
     let headers = {
       Referer: "",
       "User-Agent": "",
     };
-
-    const licenseTypeRegex = /^#KODIPROP:inputstream\.adaptive\.license_type=(.+)$/;
-    const licenseKeyRegex = /^#KODIPROP:inputstream\.adaptive\.license_key=(.+)$/;
 
     lines.forEach((line) => {
       line = line.trim();
@@ -53,9 +43,7 @@ export const fetchAndParsePlaylist = async (url: string) => {
           globalMetadata["refresh"] = refreshMatch[1];
         }
       } else if (line.startsWith("#EXTINF:")) {
-        // Reset untuk setiap channel baru
         currentItem = { name: "", headers: { Referer: "", "User-Agent": "" } };
-        licenseData = {};
 
         const nameMatch = line.match(/,([^,]+)$/);
         currentItem.name = nameMatch ? nameMatch[1].trim() : "Unknown Channel";
@@ -72,23 +60,6 @@ export const fetchAndParsePlaylist = async (url: string) => {
         currentItem.group = {
           title: matchGroupTitle ? matchGroupTitle[1] : null,
         };
-      } else if (line.startsWith("#KODIPROP")) {
-        const typeMatch = line.match(licenseTypeRegex);
-        if (typeMatch) {
-          licenseData.license_type = typeMatch[1].trim();
-         // console.log("Parsed license type:", licenseData.license_type);
-        }
-
-        const keyMatch = line.match(licenseKeyRegex);
-        if (keyMatch) {
-          licenseData.license_key = keyMatch[1].trim();
-         // console.log("Parsed license key:", licenseData.license_key);
-        }
-
-        if (licenseData.license_type && licenseData.license_key) {
-          currentItem.license = { ...licenseData };
-         // console.log("Assigned license to currentItem:", currentItem.license);
-        }
       } else if (line.startsWith("#EXTVLCOPT:http-referrer=")) {
         headers.Referer = line.substring(line.indexOf("=") + 1).trim();
       } else if (line.startsWith("#EXTVLCOPT:http-user-agent=")) {
@@ -114,6 +85,5 @@ export const fetchAndParsePlaylist = async (url: string) => {
     throw new Error('Error fetching or parsing the playlist: ' + error.message);
   }
 };
-
 
 export default fetchAndParsePlaylist;

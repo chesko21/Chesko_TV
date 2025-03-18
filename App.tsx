@@ -13,7 +13,6 @@ import Toast from "react-native-toast-message";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import * as NavigationBar from "expo-navigation-bar"; 
-import * as Linking from 'expo-linking';
 
 
 const Stack = createStackNavigator();
@@ -115,9 +114,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#020f1f",
+    padding: '5%', // Added padding for responsiveness
   },
   errorText: {
-    fontSize: 18,
+    fontSize: 24, // Increased font size for better visibility on larger screens
     color: "red",
   },
 });

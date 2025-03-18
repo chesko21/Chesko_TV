@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#24538e",
     borderBottomWidth: 1,
     borderBottomColor: "#444",
+    justifyContent: "center",
   },
   logo: {
     width: 40,
