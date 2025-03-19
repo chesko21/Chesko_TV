@@ -334,25 +334,27 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
     justifyContent: "flex-end",
-    padding: 10,
   },
   metadataWrapper: {
-    marginBottom: 5,
+    marginBottom: 10,
+    left: 10,
   },
   controlsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 5,
     borderRadius: 10,
-    width: "100%",
+    width: "30%",
     position: 'relative',
-    bottom: 0,
+    bottom: 10,
+    
   },
   controlButton: {
     padding: 5,
+    justifyContent: "center",
+    alignItems: "center",
   },
   focusedButton: {
     borderColor: "#1EB1FC",
@@ -411,7 +413,7 @@ const styles = StyleSheet.create({
   metadataContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
+    padding: 5,
   },
   logoImage: {
     width: 40,
@@ -428,14 +430,15 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 15,
-    padding: 10,
+    padding: 5,
     backgroundColor: "#333",
     alignItems: "center",
     borderRadius: 5,
+    marginBottom: 10,
   },
   backText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 12,
   },
 });
 

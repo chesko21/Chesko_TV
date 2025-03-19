@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   focusedItem: {
-    backgroundColor: "rgba(16, 25, 71, 0.5)",
+    backgroundColor: "rgba(16, 25, 71, 0.85)",
     borderRadius: 10,
     padding: 2,
     width: 50,

@@ -507,9 +507,9 @@ const styles = StyleSheet.create({
   controlsWrapper: {
     position: "absolute",
     bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    alignItems: "center",
   },
 
   errorContainer: {
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 60,
     right: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.68)",
     padding: 10,
     borderRadius: 5,
   },
