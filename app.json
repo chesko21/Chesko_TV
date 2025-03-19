@@ -29,6 +29,7 @@
       [
         "react-native-video",
         {
+          "enableAndroidPictureInPicture": true,
           "platforms": {
             "android": {
               "sourceDir": "../node_modules/react-native-video/android-exoplayer"

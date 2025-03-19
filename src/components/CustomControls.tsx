@@ -8,8 +8,10 @@ import {
   Text,
   ScrollView,
   useTVEventHandler,
+  Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+
 
 const CustomControls = ({
   isPlaying,
@@ -20,6 +22,8 @@ const CustomControls = ({
   audioResolutions,
   onResolutionSelect,
   onAudioSelect,
+  metadata,
+  channel,
 }) => {
   const [showControls, setShowControls] = useState(false);
   const [showResolutions, setShowResolutions] = useState(false);
@@ -27,58 +31,19 @@ const CustomControls = ({
   const [focusedButton, setFocusedButton] = useState("playPause");
   const [selectedResolution, setSelectedResolution] = useState(null);
   const [selectedAudio, setSelectedAudio] = useState(null);
-  const timeoutRef = useRef(null);
+  const [focusedItem, setFocusedItem] = useState(null);
 
-  const showControlsOnInteraction = () => {
-    setShowControls(true); 
-    clearTimeout(timeoutRef.current); 
-    
-    timeoutRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 10000);
+  const timeoutRef = useRef(null);
+  const formatResolution = (_width: any, height: number) => {
+    if (height <= 144) return '144p';
+    if (height <= 240) return '240p';
+    if (height <= 360) return '360p';
+    if (height <= 480) return '480p';
+    if (height <= 720) return '720p';
+    if (height <= 1080) return '1080p';
+    return `${height}p`; 
   };
 
-  useTVEventHandler((evt) => {
-    if (
-      evt.eventType === "select" ||
-      evt.eventType === "right" || 
-      evt.eventType === "left" ||
-      evt.eventType === "focus" || 
-      evt.eventType === "onTouch"   
-    ) {
-      showControlsOnInteraction();
-    }
-
-    if (showControls) {
-      switch (evt.eventType) {
-        case "right":
-          if (focusedButton === "playPause") setFocusedButton("mute");
-          else if (focusedButton === "mute") setFocusedButton("settings");
-          else if (focusedButton === "settings") setFocusedButton("audio");
-          break;
-
-        case "left":
-          if (focusedButton === "audio") setFocusedButton("settings");
-          else if (focusedButton === "settings") setFocusedButton("mute");
-          else if (focusedButton === "mute") setFocusedButton("playPause");
-          break;
-
-        case "select":
-          if (focusedButton === "playPause") onPlayPause();
-          if (focusedButton === "mute") onMuteToggle();
-          if (focusedButton === "settings") {
-            setShowResolutions((prev) => !prev);
-          }
-          if (focusedButton === "audio") {
-            setShowAudioTracks((prev) => !prev);
-          }
-          break;
-
-        default:
-          break;
-      }
-    }
-  });
 
   useEffect(() => {
     return () => {
@@ -86,66 +51,184 @@ const CustomControls = ({
     };
   }, []);
 
+  const showControlsOnInteraction = () => {
+    setShowControls(true);
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    timeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 5000);
+  };
+
+  const hideControls = () => {
+    setShowControls(false);
+    clearTimeout(timeoutRef.current);
+  };
+
+  const toggleControls = () => {
+    setShowControls((prev) => !prev);
+    if (!showControls) {
+      showControlsOnInteraction();
+    }
+  };
+
+  useTVEventHandler((evt) => {
+    showControlsOnInteraction();
+    if (showControls) {
+      switch (evt.eventType) {
+        case "right":
+          changeFocus("right");
+          break;
+        case "left":
+          changeFocus("left");
+          break;
+        case "select":
+          executeAction();
+          break;
+        case "up":
+          if (!showResolutions && !showAudioTracks) {
+            setFocusedButton("resolutions");
+          }
+          break;
+        case "down":
+          if (!showResolutions && !showAudioTracks) {
+            resetFocus();
+          }
+          break;
+        case "focus":
+          if (showResolutions) {
+            setFocusedItem(null);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  });
+
+  const changeFocus = (direction: string) => {
+    const buttons = ["playPause", "mute", "settings", "audio"];
+    const currentIndex = buttons.indexOf(focusedButton);
+
+    if (direction === "right" && currentIndex < buttons.length - 1) {
+      setFocusedButton(buttons[currentIndex + 1]);
+    } else if (direction === "left" && currentIndex > 0) {
+      setFocusedButton(buttons[currentIndex - 1]);
+    }
+  };
+
+  const executeAction = () => {
+    switch (focusedButton) {
+      case "playPause":
+        onPlayPause();
+        break;
+      case "mute":
+        onMuteToggle();
+        break;
+      case "settings":
+        setShowResolutions(true);
+        break;
+      case "audio":
+        setShowAudioTracks(true);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const resetFocus = () => {
+    setFocusedButton("playPause");
+  };
+
   const handleResolutionSelect = (id) => {
     setSelectedResolution(id);
     onResolutionSelect(id);
+    hideControls();
     setShowResolutions(false);
   };
 
   const handleAudioSelect = (id) => {
     setSelectedAudio(id);
     onAudioSelect(id);
-    setShowAudioTracks(false); 
+    hideControls();
+    setShowAudioTracks(false);
+  };
+
+  const renderMetadata = () => {
+    if (!metadata) return null;
+
+    return (
+      <View style={styles.metadataContainer}>
+        {metadata.tvgLogo && <Image source={{ uri: metadata.tvgLogo }} style={styles.logoImage} />}
+        <View style={styles.textContainer}>
+          <Text style={styles.metadataText}>{channel.name}</Text>
+          <Text style={styles.metadataText}>{metadata.tvgId || "No ID"}</Text>
+        </View>
+      </View>
+    );
   };
 
   return (
-    <TouchableWithoutFeedback onPress={showControlsOnInteraction}>
-      <View style={{ flex: 1 }}>
+    <TouchableWithoutFeedback onPress={toggleControls}>
+      <View style={styles.container}>
         {showControls && (
-          <View style={styles.controlsContainer}>
-            <TouchableOpacity
-              onPress={onPlayPause}
-              onFocus={() => setFocusedButton("playPause")}
-              style={[
-                styles.controlButton,
-                focusedButton === "playPause" && styles.focusedButton,
-              ]}
-            >
-              <Icon name={isPlaying ? "pause" : "play-arrow"} size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onMuteToggle}
-              onFocus={() => setFocusedButton("mute")}
-              style={[
-                styles.controlButton,
-                focusedButton === "mute" && styles.focusedButton,
-              ]}
-            >
-              <Icon name={isMuted ? "volume-off" : "volume-up"} size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowResolutions((prev) => !prev)}
-              onFocus={() => setFocusedButton("settings")}
-              style={[
-                styles.controlButton,
-                focusedButton === "settings" && styles.focusedButton,
-              ]}
-            >
-              <Icon name="settings" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowAudioTracks((prev) => !prev)}
-              onFocus={() => setFocusedButton("audio")}
-              style={[
-                styles.controlButton,
-                focusedButton === "audio" && styles.focusedButton,
-              ]}
-            >
-              <Icon name="audiotrack" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          <>
+            <View style={styles.metadataWrapper}>
+              {renderMetadata()}
+            </View>
+            <View style={styles.controlsContainer}>
+              <TouchableOpacity
+                onPress={onPlayPause}
+                onFocus={() => setFocusedButton("playPause")}
+                style={[
+                  styles.controlButton,
+                  focusedButton === "playPause" && styles.focusedButton,
+                ]}
+              >
+                <Icon name={isPlaying ? "pause" : "play-arrow"} size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onMuteToggle}
+                onFocus={() => setFocusedButton("mute")}
+                style={[
+                  styles.controlButton,
+                  focusedButton === "mute" && styles.focusedButton,
+                ]}
+              >
+                <Icon name={isMuted ? "volume-off" : "volume-up"} size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowResolutions(true)}
+                onFocus={() => setFocusedButton("settings")}
+                style={[
+                  styles.controlButton,
+                  focusedButton === "settings" && styles.focusedButton,
+                ]}
+              >
+                <Icon name="settings" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowAudioTracks(true)}
+                onFocus={() => setFocusedButton("audio")}
+                style={[
+                  styles.controlButton,
+                  focusedButton === "audio" && styles.focusedButton,
+                ]}
+              >
+                <Icon name="audiotrack" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </>
         )}
-        <Modal transparent visible={showResolutions} onRequestClose={() => setShowResolutions(false)}>
+
+        {/* Modal untuk Resolusi Video */}
+        <Modal
+          transparent
+          visible={showResolutions}
+          animationType="slide"
+          onRequestClose={() => setShowResolutions(false)}
+        >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Pilih Resolusi Video</Text>
@@ -155,22 +238,48 @@ const CustomControls = ({
                     <TouchableOpacity
                       key={res.id}
                       onPress={() => handleResolutionSelect(res.id)}
+                      onFocus={() => setFocusedItem(res.id)}
                       style={[
                         styles.resolutionItem,
                         selectedResolution === res.id && styles.selectedItem,
+                        focusedItem === res.id && { backgroundColor: "#1EB1FC" },
                       ]}
                     >
-                      <Text style={styles.resolutionText}>{`${res.width}x${res.height}`}</Text>
+                      <Text style={[
+                        styles.resolutionText,
+                        selectedResolution === res.id ? { color: '#000' } : { color: '#fff' },
+                      ]}>
+                        {formatResolution(res.width, res.height)}
+                      </Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.resolutionText}>Tidak ada resolusi tersedia</Text>
+                  <>
+                    <Text style={styles.resolutionText}>Tidak ada resolusi tersedia</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowResolutions(false)}
+                      onFocus={() => setFocusedItem("backResolution")}
+                      style={[
+                        styles.backButton,
+                        focusedItem === "backResolution" && { backgroundColor: "#1EB1FC" },
+                      ]}
+                    >
+                      <Text style={styles.backText}>Kembali</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </ScrollView>
             </View>
           </View>
         </Modal>
-        <Modal transparent visible={showAudioTracks} onRequestClose={() => setShowAudioTracks(false)}>
+        
+        {/* Modal untuk Audio Tracks */}
+        <Modal
+          transparent
+          visible={showAudioTracks}
+          animationType="slide"
+          onRequestClose={() => setShowAudioTracks(false)}
+        >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Pilih Kualitas Audio</Text>
@@ -180,27 +289,56 @@ const CustomControls = ({
                     <TouchableOpacity
                       key={audio.id}
                       onPress={() => handleAudioSelect(audio.id)}
+                      onFocus={() => setFocusedItem(audio.id)}
                       style={[
                         styles.audioItem,
                         selectedAudio === audio.id && styles.selectedItem,
+                        focusedItem === audio.id && { backgroundColor: "#1EB1FC" },
                       ]}
                     >
-                      <Text style={styles.audioText}>{`${audio.audioSamplingRate / 1000} kHz`}</Text>
+                      <Text style={[
+                        styles.audioText,
+                        selectedAudio === audio.id ? { color: '#000' } : { color: '#fff' },
+                      ]}>
+                        {`${audio.audioSamplingRate / 1000} kHz`}
+                      </Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.audioText}>Tidak ada audio tersedia</Text>
+                  <>
+                    <Text style={styles.audioText}>Tidak ada audio tersedia</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowAudioTracks(false)}
+                      onFocus={() => setFocusedItem("backAudio")}
+                      style={[
+                        styles.backButton,
+                        focusedItem === "backAudio" && { backgroundColor: "#1EB1FC" },
+                      ]}
+                    >
+                      <Text style={styles.backText}>Kembali</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </ScrollView>
             </View>
           </View>
         </Modal>
+
       </View>
     </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    padding: 10,
+  },
+  metadataWrapper: {
+    marginBottom: 5,
+  },
   controlsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -209,10 +347,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderRadius: 10,
-    width: "50%",
-    alignSelf: "center",
-    position: 'absolute',
-    bottom: 5,
+    width: "100%",
+    position: 'relative',
+    bottom: 0,
   },
   controlButton: {
     padding: 5,
@@ -227,46 +364,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.8)",
-    borderRadius: 10, 
-    shadowColor: "#000", 
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5, 
-  },
-
-  modalContent: {
-    backgroundColor: "#1c1c1c", 
     borderRadius: 10,
-    padding: 10, 
-    width: "40%",
-    maxHeight: "60%",
+  },
+  modalContent: {
+    backgroundColor: "#1c1c1c",
+    borderRadius: 10,
+    padding: 2,
+    width: "25%",
+    maxHeight: "50%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   resolutionItem: {
     padding: 10,
+    marginBottom: 5,
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
   audioItem: {
     padding: 10,
+    marginBottom: 5,
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
   selectedItem: {
-    backgroundColor: "#1EB1FC",
+    backgroundColor:  "rgba(43, 11, 185, 0.8)",
   },
   resolutionText: {
-    fontSize: 15, 
-    color: "#fff",
+    fontSize: 12,
     justifyContent: "center",
     alignItems: "center",
   },
   audioText: {
-    fontSize: 15, 
-    color: "#fff", 
+    fontSize: 12,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -278,8 +408,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-
+  metadataContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  textContainer: {
+    flexDirection: "column",
+  },
+  metadataText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  backButton: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: "#333",
+    alignItems: "center",
+    borderRadius: 5,
+  },
+  backText: {
+    color: "#fff",
+    fontSize: 16,
+  },
 });
 
 export default CustomControls;

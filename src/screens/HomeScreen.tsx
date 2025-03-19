@@ -9,7 +9,8 @@ import {
   ImageBackground,
   BackHandler,
   Pressable,
-  DeviceEventEmitter
+  DeviceEventEmitter,
+  Dimensions
 } from "react-native";
 import { fetchAndParsePlaylist } from "../utils/ParsePlaylist";
 import { useNavigation } from "@react-navigation/native";
@@ -36,7 +37,8 @@ const HomeScreen = () => {
   const [focusedChannel, setFocusedChannel] = useState<string | null>(null);
   const [focusedGroup, setFocusedGroup] = useState<string | null>(null);
   const [focusedFavorite, setFocusedFavorite] = useState<string | null>(null);
-  
+  const [numColumns, setNumColumns] = useState(5);
+  const [itemSize, setItemSize] = useState(100);
   const navigation = useNavigation();
   const isMounted = useRef(true);
 
@@ -221,6 +223,21 @@ const HomeScreen = () => {
     (title) => title !== "Favorit" && title !== "Recents Watch"
   );
 
+  useEffect(() => {
+    const updateLayout = () => {
+      const { width } = Dimensions.get('window');
+      const columns = Math.floor(width / 120); // Misalnya, setiap item minimal 120px
+      setNumColumns(columns);
+      setItemSize(width / columns - 16); // 16 adalah margin dan padding
+    };
+
+    updateLayout();
+
+    const subscription = Dimensions.addEventListener('change', updateLayout);
+    return () => subscription?.remove();
+  }, []);
+
+  
   const renderChannel = ({ item }: { item: any }) => {
     const isFocused = focusedChannel === item?.url;
     const isFavoriteFocused = focusedFavorite === item?.url;
@@ -229,9 +246,9 @@ const HomeScreen = () => {
       item?.tvg?.logo && /^(http|https):\/\//.test(item.tvg.logo)
         ? { uri: item.tvg.logo }
         : defaultLogo;
-  
+
     const truncatedName = item?.name?.length > 12 ? `${item.name.slice(0, 12)}...` : item?.name;
-  
+
     return (
       <Pressable
         focusable={true}
@@ -240,11 +257,12 @@ const HomeScreen = () => {
         style={[
           styles.channelContainer,
           isFocused && styles.focusedChannel,
+          { width: itemSize, height: itemSize }
         ]}
       >
         <Image source={logoUri} style={styles.channelLogo} />
         <Text style={styles.channelName}>{truncatedName}</Text>
-  
+
         {/* Tombol Favorite */}
         <Pressable
           focusable={true}
@@ -301,7 +319,6 @@ const HomeScreen = () => {
           loop
           style={styles.loadingIndicator}
         />
-        
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
@@ -325,8 +342,7 @@ const HomeScreen = () => {
                   data={groupedChannels[selectedGroup] || []}
                   renderItem={renderChannel}
                   keyExtractor={(item) => item.id ? item.id.toString() : `${item.url}-${item.name}`}
-
-                  numColumns={5}
+                  numColumns={numColumns}
                 />
               ) : (
                 <Text style={styles.noGroupText}>
@@ -340,6 +356,7 @@ const HomeScreen = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -366,16 +383,12 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   channelContainer: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     margin: 8,
     backgroundColor: "#24538e",
     borderRadius: 8,
     padding: 10,
-    height: 100,
-    maxWidth: 100,
-    aspectRatio: 1,
   },
   channelLogo: {
     width: 60,

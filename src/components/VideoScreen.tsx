@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { debounce } from "lodash";
-import { View, Text, StyleSheet, Dimensions, Image, Button, TouchableOpacity, Modal } from "react-native";
+import { View, Text, StyleSheet, Dimensions, Image, Button, TouchableOpacity, Modal, useWindowDimensions } from "react-native";
 import Video from "react-native-video";
 import { useRoute } from "@react-navigation/native";
 import LottieView from "lottie-react-native";
@@ -9,8 +9,6 @@ import * as Animatable from "react-native-animatable";
 import { Buffer, WithImplicitCoercion } from "buffer";
 import { DOMParser } from 'xmldom';
 import CustomControls from "./CustomControls";
-
-Dimensions.get("window");
 
 const VideoScreen: React.FC = () => {
   const [isMuted, setIsMuted] = useState < boolean > (false);
@@ -39,11 +37,18 @@ const VideoScreen: React.FC = () => {
   const hideControlsTimeout = useRef(null);
   const [currentProgram, setCurrentProgram] = useState(null);
 
-  // Perbarui currentProgram berdasarkan channelEpg
+  const { width, height } = useWindowDimensions();
+
+  const videoStyle = {
+    width: width,
+    height: height,
+    alignSelf: 'center',
+  };
+
   useEffect(() => {
     if (channelEpg && channelEpg.programs) {
       const now = new Date();
-      const current = channelEpg.programs.find(program => {
+      const current = channelEpg.programs.find((program: { start: string | number | Date; stop: string | number | Date; }) => {
         const start = new Date(program.start);
         const end = new Date(program.stop);
         return now >= start && now <= end;
@@ -52,29 +57,20 @@ const VideoScreen: React.FC = () => {
     }
   }, [channelEpg]);
 
-  // Fungsi untuk memuat ulang video
-  const reloadVideo = (): void => {
 
-    setReloadKey((prevKey) => prevKey + 1);
-    setIsLoading(true);
-    setErrorMessage(null);
-    setIsPaused(false);
-  };
-
-  const handleScreenTap = (): void => {
-
+  const handleScreenTap = () => {
     setIsOverlayVisible(true);
     setIsControlsVisible(true);
     if (hideControlsTimeout.current) {
       clearTimeout(hideControlsTimeout.current);
     }
+
     hideControlsTimeout.current = setTimeout(() => {
       setIsOverlayVisible(false);
       setIsControlsVisible(false);
-    }, 10000);
+    }, 30000);
   };
 
-  // Bersihkan timer saat komponen unmount
   useEffect(() => {
     return () => {
       if (hideControlsTimeout.current) {
@@ -172,6 +168,7 @@ const VideoScreen: React.FC = () => {
     return resolutions;
   };
 
+
   // Ambil daftar resolusi dari manifest
   const getResolutions = async (url: string | string[] | URL | Request) => {
     const streamType = detectStreamType(url);
@@ -231,24 +228,25 @@ const VideoScreen: React.FC = () => {
     return undefined;
   };
 
+
   // Konversi HEX ke Base64
   const hexToBase64 = (hex: WithImplicitCoercion<string>) => {
     if (!/^[a-fA-F0-9]+$/.test(hex)) {
-      console.warn(`Invalid HEX input: ${hex}`);
+      //console.warn(`Invalid HEX input: ${hex}`);
       return null;
     }
     return Buffer.from(hex, "hex").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   };
 
-  // Ambil resolusi saat URL berubah
   useEffect(() => {
-    const fetchResolutions = async (): Promise<void> => {
-
+    const fetchResolutions = async () => {
       const { video, audio } = await getResolutions(channel.url);
       setVideoResolutions(video);
       setAudioResolutions(audio);
 
-      // Pilih resolusi terendah secara default
+     // console.log("Video Resolutions: ", video);
+      //console.log("Audio Resolutions: ", audio);
+
       if (video.length > 0) {
         const lowestResolution = video.reduce((prev, curr) =>
           curr.bandwidth < prev.bandwidth ? curr : prev
@@ -259,7 +257,7 @@ const VideoScreen: React.FC = () => {
     fetchResolutions();
   }, [channel.url]);
 
-  // Konfigurasi DRM berdasarkan jenis stream
+
   const drmConfig = useMemo(() => {
     const streamType = detectStreamType(channel.url);
     if (streamType === 'dash') {
@@ -270,7 +268,6 @@ const VideoScreen: React.FC = () => {
     return undefined;
   }, [channel.url]);
 
-  // Sumber video berdasarkan resolusi yang dipilih
   const getVideoSource = () => {
     const selectedVideo = videoResolutions.find(res => res.id === selectedResolution);
     const selectedAudioTrack = audioResolutions.find(res => res.id === selectedAudio);
@@ -299,12 +296,24 @@ const VideoScreen: React.FC = () => {
     };
   };
 
+
+  const handleResolutionChange = (resolutionId) => {
+    if (resolutionId !== selectedResolution) {
+      setSelectedResolution(resolutionId);
+      reloadVideo();
+    }
+  }
+
+  const handleAudioChange = (audioId) => {
+    if (audioId !== selectedAudio) {
+      setSelectedAudio(audioId);
+    }
+  }
+
   const handlePlayPause = () => {
     setIsPaused((prev) => !prev);
   };
 
-
-  // Handler untuk mute/unmute
   const onMuteToggle = () => {
     setIsMuted(prev => !prev);
     playerRef.current.setVolume(isMuted ? 1 : 0);
@@ -315,7 +324,7 @@ const VideoScreen: React.FC = () => {
   }, []);
 
 
-  const onBuffer = (data) => {
+  const onBuffer = (data: { isBuffering: boolean | ((prevState: boolean) => boolean); }) => {
     setIsBuffering(data.isBuffering);
   };
 
@@ -343,14 +352,15 @@ const VideoScreen: React.FC = () => {
     }
   };
 
-  // Handler saat video berhasil dimuat
   const onLoad = (data: { duration: number; }): void => {
+    setIsLoading(true);
+    setIsBuffering(true);
 
     setTimeout(() => {
       setIsLoading(false);
       setIsBuffering(false);
       setErrorMessage(null);
-    }, 300);
+    }, 500);
 
     setDuration(data.duration);
     setMetadata({
@@ -360,31 +370,55 @@ const VideoScreen: React.FC = () => {
     });
   };
 
-  // Handler saat video selesai diputar
+
+  const reloadVideo = (): void => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    setIsPaused(false);
+    setReloadKey((prevKey) => prevKey + 1);
+  }
+
   const onEnd = () => {
     setIsPaused(true);
     setIsOverlayVisible(false);
   };
 
-  // Render metadata
-  const renderMetadata = (): JSX.Element => {
-
-    return (
-      <View style={styles.metadataContainer}>
-        {metadata.tvgLogo && <Image source={{ uri: metadata.tvgLogo }} style={styles.logoImage} />}
-        <View style={styles.textContainer}>
-          <Text style={styles.metadataText}>{channel.name}</Text>
-          <Text style={styles.metadataText}>{metadata.tvgId}</Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container} onTouchStart={handleScreenTap}>
-      {/* Animasi Loading */}
+
+      <Video
+        style={videoStyle}
+        ref={playerRef}
+        source={getVideoSource()}
+        onBuffer={onBuffer}
+        onError={onError}
+        onLoad={onLoad}
+        onEnd={onEnd}
+        onProgress={updateCurrentTime}
+        paused={isPaused}
+        rate={rate}
+        resizeMode="contain"
+        controls={false}
+      />
+      {isControlsVisible && (
+        <Animatable.View animation="fadeInUp" duration={500} style={styles.controlsWrapper}>
+          <CustomControls
+            isPlaying={!isPaused}
+            onPlayPause={handlePlayPause}
+            isMuted={isMuted}
+            onMuteToggle={onMuteToggle}
+            videoResolutions={videoResolutions}
+            audioResolutions={audioResolutions}
+            onResolutionSelect={handleResolutionChange}
+            onAudioSelect={handleAudioChange}
+            metadata={metadata}
+            channel={channel}
+          />
+        </Animatable.View>
+      )}
+      {/* Loading Animation */}
       {isLoading && !errorMessage && (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingOverlay}>
           <LottieView
             key={reloadKey}
             source={require("../../assets/animasi/loading.json")}
@@ -396,9 +430,9 @@ const VideoScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Animasi Buffering */}
+      {/* Buffering Animation */}
       {isBuffering && !isLoading && !errorMessage && (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingOverlay}>
           <LottieView
             source={require("../../assets/animasi/buffering.json")}
             autoPlay
@@ -409,9 +443,9 @@ const VideoScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Animasi Error */}
+      {/* Error Message */}
       {errorMessage && (
-        <View style={styles.errorContainer}>
+        <View style={styles.errorOverlay}>
           <LottieView
             source={require("../../assets/animasi/buffering.json")}
             autoPlay
@@ -424,66 +458,8 @@ const VideoScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* Video Player */}
-      <Video
-        style={styles.video}
-        ref={playerRef}
-        source={getVideoSource()}
-        style={styles.video}
-        onBuffer={onBuffer}
-        onError={onError}
-        onLoad={onLoad}
-        onEnd={onEnd}
-        onProgress={updateCurrentTime}
-        paused={isPaused}
-        rate={rate}
-        resizeMode="contain"
-        controls={false}
-
-      />
-      {/* Custom Controls */}
-      {isControlsVisible && (
-        <Animatable.View animation="fadeInUp" duration={500} style={styles.controlsWrapper}>
-          <CustomControls
-            isPlaying={!isPaused}
-            onPlayPause={handlePlayPause}
-            isMuted={isMuted}
-            onMuteToggle={onMuteToggle}
-            videoResolutions={videoResolutions}
-            audioResolutions={audioResolutions}
-            onResolutionSelect={setSelectedResolution}
-            onAudioSelect={setSelectedAudio}
-          />
-        </Animatable.View>
-      )}
-      {/* Overlay for metadata and program info */}
-      {isOverlayVisible && (
-        <Animatable.View animation="fadeInDown" duration={500} style={styles.overlayContainer}>
-          <View style={styles.metadataContainer}>
-            {metadata.tvgLogo && <Image source={{ uri: metadata.tvgLogo }} style={styles.logoImage} />}
-            <View style={styles.textContainer}>
-              <Text style={styles.metadataText}>{channel.name}</Text>
-              <Text style={styles.metadataText}>{metadata.tvgId}</Text>
-            </View>
-          </View>
-
-        </Animatable.View>
-      )}
-
-      {/* Animasi Selesai (Opsional) */}
-      {isPaused && currentTime >= duration && duration > 0 && (
-        <View style={styles.endContainer}>
-          <LottieView
-            source={require("../../assets/animasi/loading.json")}
-            autoPlay
-            loop={false}
-            style={styles.lottie}
-          />
-          <Text style={styles.endText}>Video Pause</Text>
-        </View>
-      )}
     </View>
+
   );
 };
 
@@ -493,91 +469,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
   },
-  loadingContainer: {
+  video: {
+    width: "100%",
+    height: "100%",
+  },
+  loadingOverlay: {
     position: "absolute",
-    flex: 1,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.17)",
+    zIndex: 10,
+  },
+  errorOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    zIndex: 15,
   },
   lottie: {
-    width: 150,
-    height: 150,
+    width: 100,
+    height: 100,
   },
   loadingText: {
     color: "#fff",
     fontSize: 18,
     marginTop: 10,
   },
-  video: {
-    width: "100%",
-    height: "100%",
-  },
-  overlayContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "flex-end",
-   
-  },
   controlsWrapper: {
     position: "absolute",
-    bottom: 10,
+    bottom: 0,
     left: 0,
     right: 0,
     alignItems: "center",
-   
   },
-  metadataContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(20, 2, 2, 0.07)",
-    maxWidth: "30%",
-    padding: 10,
-    borderRadius: 20,
-  },
-  logoImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  textContainer: {
-    flexDirection: "column",
-  },
-  metadataText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  programInfoContainer: {
-    marginTop: 5,
-    padding: 10,
-    borderRadius: 8,
-    maxWidth: '40%',
-    overflow: "hidden",
-    color: "#fff",
-  },
-  programTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  programTime: {
-    color: "#fff",
-    fontSize: 14,
-  },
-  programDescription: {
-    color: "#fff",
-    fontSize: 12,
-    marginTop: 5,
-  },
+
   errorContainer: {
     justifyContent: "center",
     alignItems: "center",

@@ -114,10 +114,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#020f1f",
-    padding: '5%', // Added padding for responsiveness
+    padding: '5%', 
   },
   errorText: {
-    fontSize: 24, // Increased font size for better visibility on larger screens
+    fontSize: 24,
     color: "red",
   },
 });

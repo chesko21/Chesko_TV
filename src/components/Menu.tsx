@@ -1,8 +1,16 @@
-import React, { useState } from "react";
-import { View, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Text, Modal } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ActivityIndicator,
+  Text,
+  Modal,
+  useTVEventHandler,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import Toast from "react-native-toast-message";
-
 
 interface MenuProps {
   onReloadPress: () => Promise<void>;
@@ -21,17 +29,23 @@ const Menu = ({
   onRecentWatchPress,
   isReloading,
 }: MenuProps) => {
-  const [focusedItem, setFocusedItem] = useState<string | null>(null); 
-  const [isExitModalVisible, setExitModalVisible] = useState(false); 
-  const [focusedModalButton, setFocusedModalButton] = useState<string | null>(null); 
+  const [focusedItem, setFocusedItem] = useState<string | null>(null);
+  const [isExitModalVisible, setExitModalVisible] = useState(false);
+  const [focusedModalButton, setFocusedModalButton] = useState<string | null>(null);
+
+  useTVEventHandler((evt) => {
+    if (evt && evt.eventType === "select" && focusedItem === "reload") {
+      onReloadPress(); 
+    }
+  });
 
   const handleExit = () => {
-    setExitModalVisible(true); 
+    setExitModalVisible(true);
   };
 
   const handleConfirmExit = () => {
-    setExitModalVisible(false); 
-    onExitPress(); 
+    setExitModalVisible(false);
+    onExitPress();
   };
 
   const handleCancelExit = () => {
@@ -45,9 +59,8 @@ const Menu = ({
       text1: "Opening Settings",
       text2: "You are now viewing the settings page.",
     });
-    onSettingsPress(); 
+    onSettingsPress();
   };
-
 
   return (
     <View style={styles.menuContainer}>
@@ -55,19 +68,23 @@ const Menu = ({
       <View style={styles.menuButtons}>
         {/* Reload Button */}
         <TouchableOpacity
-          onPress={onReloadPress}
-          onFocus={() => setFocusedItem("reload")}
+          onPress={onReloadPress} 
+          onFocus={() => setFocusedItem("reload")} 
           onBlur={() => setFocusedItem(null)}
           style={[styles.menuItem, focusedItem === "reload" && styles.focusedItem]}
           disabled={isReloading}
         >
-          {isReloading ? <ActivityIndicator size="small" color="#fff" /> : <Icon name="refresh" size={24} color="#fff" />}
+          {isReloading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Icon name="refresh" size={24} color="#fff" />
+          )}
           {focusedItem === "reload" && <Text style={styles.menuText}>Reload</Text>}
         </TouchableOpacity>
 
         {/* Settings Button */}
         <TouchableOpacity
-           onPress={handleSettings}
+          onPress={handleSettings}
           onFocus={() => setFocusedItem("settings")}
           onBlur={() => setFocusedItem(null)}
           style={[styles.menuItem, focusedItem === "settings" && styles.focusedItem]}
@@ -100,7 +117,7 @@ const Menu = ({
 
         {/* Exit Button */}
         <TouchableOpacity
-          onPress={handleExit} 
+          onPress={handleExit}
           onFocus={() => setFocusedItem("exit")}
           onBlur={() => setFocusedItem(null)}
           style={[styles.menuItem, focusedItem === "exit" && styles.focusedItem]}
@@ -108,7 +125,6 @@ const Menu = ({
           <Icon name="exit-to-app" size={24} color="#fff" />
           {focusedItem === "exit" && <Text style={styles.menuText}>Exit</Text>}
         </TouchableOpacity>
-
       </View>
 
       <Modal
@@ -172,10 +188,10 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     marginHorizontal: 10,
-    alignItems: "center", 
+    alignItems: "center",
   },
   focusedItem: {
-    backgroundColor:"rgba(16, 25, 71, 0.5)",
+    backgroundColor: "rgba(16, 25, 71, 0.5)",
     borderRadius: 10,
     padding: 2,
     width: 50,
@@ -212,7 +228,7 @@ const styles = StyleSheet.create({
   },
   focusedModalButton: {
     backgroundColor: "#24538e",
-  }
+  },
 });
 
 export default Menu;
