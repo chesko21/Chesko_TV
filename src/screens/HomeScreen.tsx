@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
@@ -10,37 +9,35 @@ import {
   BackHandler,
   Pressable,
   DeviceEventEmitter,
-  Dimensions
+  Dimensions,
 } from "react-native";
 import { fetchAndParsePlaylist } from "../utils/ParsePlaylist";
 import { useNavigation } from "@react-navigation/native";
 import defaultLogo from "../../assets/images/tv_banner.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Icon from "react-native-vector-icons/MaterialIcons";
 import Menu from "../components/Menu";
 import LottieView from "lottie-react-native";
 
-const FAVORITE_CHANNELS_KEY = "favoriteChannels";
 const LAST_WATCHED_KEY = "lastWatched";
 const PLAYLIST_KEY = "playlist";
 const PLAYLIST_URLS_KEY = "playlistUrls";
 const DEFAULT_PLAYLIST_URL = "https://pastebin.com/raw/JyCSD9r1";
 
 const HomeScreen = () => {
-  const [channels, setChannels] = useState<any[]>([]);
+  const [channels, setChannels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const [favoriteChannels, setFavoriteChannels] = useState<Set<string>>(new Set());
-  const [lastWatched, setLastWatched] = useState<any[]>([]);
-  const [focusedChannel, setFocusedChannel] = useState<string | null>(null);
-  const [focusedGroup, setFocusedGroup] = useState<string | null>(null);
-  const [focusedFavorite, setFocusedFavorite] = useState<string | null>(null);
-  const [numColumns, setNumColumns] = useState(5);
+  const [error, setError] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [lastWatched, setLastWatched] = useState([]);
+  const [lastSelectedChannel, setLastSelectedChannel] = useState(null);
+  const [focusedChannel, setFocusedChannel] = useState(null);
+  const [focusedGroup, setFocusedGroup] = useState(null);
+  const [numColumns, setNumColumns] = useState(6);
   const [itemSize, setItemSize] = useState(100);
   const navigation = useNavigation();
   const isMounted = useRef(true);
+  const channelRefs = useRef({});
 
   useEffect(() => {
     return () => {
@@ -50,17 +47,16 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const activeUrlListener = DeviceEventEmitter.addListener("ActiveURLChanged", (newUrl) => {
-      console.log("Active URL changed:", newUrl); 
+     // console.log("Active URL changed:", newUrl);
       fetchPlaylist(newUrl);
     });
-    
-  
+
     return () => {
       activeUrlListener.remove();
     };
   }, []);
-  
-  const fetchPlaylist = async (playlistUrl: string) => {
+
+  const fetchPlaylist = async (playlistUrl) => {
     if (!playlistUrl) {
       setError("Cannot load an empty URL.");
       return;
@@ -68,13 +64,12 @@ const HomeScreen = () => {
     try {
       setIsLoading(true);
       const data = await fetchAndParsePlaylist(playlistUrl);
-  
       await AsyncStorage.setItem(PLAYLIST_KEY, JSON.stringify(data.items));
       if (isMounted.current) {
         setChannels(Array.isArray(data.items) ? data.items : []);
       }
-    } catch (err: any) {
-      console.error("Error fetching playlist:", err); 
+    } catch (err) {
+      console.error("Error fetching playlist:", err);
       if (isMounted.current) {
         setError(`Failed to load playlist: ${err.message}`);
       }
@@ -84,15 +79,14 @@ const HomeScreen = () => {
       }
     }
   };
-  
-  
+
   const loadActivePlaylistUrl = async () => {
     try {
       const savedUrlsString = await AsyncStorage.getItem(PLAYLIST_URLS_KEY);
       if (savedUrlsString) {
         const savedUrls = JSON.parse(savedUrlsString);
-        console.log("Loaded URLs:", savedUrls); 
-        const activeUrlObj = savedUrls.find((item: any) => item.isActive);
+        //console.log("Loaded URLs:", savedUrls);
+        const activeUrlObj = savedUrls.find((item) => item.isActive);
         if (activeUrlObj && activeUrlObj.url) {
           fetchPlaylist(activeUrlObj.url);
         } else {
@@ -106,24 +100,12 @@ const HomeScreen = () => {
       console.error("Error loading URLs:", error);
     }
   };
-  
-  
-  
+
   useEffect(() => {
     loadActivePlaylistUrl();
   }, []);
 
   useEffect(() => {
-    const loadFavorites = async () => {
-      try {
-        const storedFavorites = await AsyncStorage.getItem(FAVORITE_CHANNELS_KEY);
-        if (storedFavorites) {
-          setFavoriteChannels(new Set(JSON.parse(storedFavorites)));
-        }
-      } catch (e) {
-        console.log("Error loading favorite channels:", e);
-      }
-    };
     const loadLastWatched = async () => {
       try {
         const storedLastWatched = await AsyncStorage.getItem(LAST_WATCHED_KEY);
@@ -134,7 +116,6 @@ const HomeScreen = () => {
         console.log("Error loading last watched channels:", e);
       }
     };
-    loadFavorites();
     loadLastWatched();
   }, []);
 
@@ -144,15 +125,11 @@ const HomeScreen = () => {
     setIsReloading(false);
   };
 
-  const handleFavoritesPress = () => {
-    setSelectedGroup("Favorit");
-  };
-
   const handleRecentWatchPress = () => {
     setSelectedGroup("Recents Watch");
   };
 
-  const handleGroupSelect = (groupTitle: string) => {
+  const handleGroupSelect = (groupTitle) => {
     setSelectedGroup(groupTitle);
   };
 
@@ -164,49 +141,24 @@ const HomeScreen = () => {
     navigation.navigate("Settings");
   };
 
-  const handleChannelPress = (channel: any) => {
-    if (!channel.license || !channel.license.license_key) {
-    }
-  
+  const handleChannelPress = (channel) => {
+    setLastSelectedChannel(channel.url);
     navigation.navigate("VideoScreen", { channel });
-
-    setLastWatched((prev: any[]) => {
-      const updatedLastWatched = [
-        channel,
-        ...prev.filter((ch) => ch.url !== channel.url),
-      ];
+    setLastWatched((prev) => {
+      const updatedLastWatched = [channel, ...prev.filter((ch) => ch.url !== channel.url)];
       AsyncStorage.setItem(LAST_WATCHED_KEY, JSON.stringify(updatedLastWatched));
       return updatedLastWatched;
     });
   };
-  
-  
 
-  const handleFavoriteToggle = useCallback((channel: any) => {
-    setFavoriteChannels((prev) => {
-      const updatedFavorites = new Set(prev);
-      if (updatedFavorites.has(channel.url)) {
-        updatedFavorites.delete(channel.url);
-      } else {
-        updatedFavorites.add(channel.url);
-      }
-      AsyncStorage.setItem(FAVORITE_CHANNELS_KEY, JSON.stringify([...updatedFavorites]));
-      return updatedFavorites;
-    });
-  }, []);
-
-  const groupChannelsByGroupTitle = (channelsArr: any[]) => {
+  const groupChannelsByGroupTitle = (channelsArr) => {
     if (!Array.isArray(channelsArr)) return {};
-    const grouped: { [key: string]: any[] } = channelsArr.reduce((acc, channel) => {
+    const grouped = channelsArr.reduce((acc, channel) => {
       const groupName = channel.group?.title || "No Group";
       if (!acc[groupName]) acc[groupName] = [];
       acc[groupName].push(channel);
       return acc;
-    }, {} as { [key: string]: any[] });
-    const favoriteGroup = channelsArr.filter((channel) => favoriteChannels.has(channel.url));
-    if (favoriteGroup.length > 0) {
-      grouped["Favorit"] = favoriteGroup;
-    }
+    }, {});
     const recentGroup = Array.isArray(lastWatched) ? lastWatched.slice(0, 20) : [];
     if (recentGroup.length > 0) {
       grouped["Recents Watch"] = recentGroup;
@@ -214,77 +166,56 @@ const HomeScreen = () => {
     return grouped;
   };
 
-  const groupedChannels = useMemo(
-    () => groupChannelsByGroupTitle(channels),
-    [channels, favoriteChannels, lastWatched]
-  );
+  const groupedChannels = useMemo(() => groupChannelsByGroupTitle(channels), [channels, lastWatched]);
 
-  const groupTitles = Object.keys(groupedChannels).filter(
-    (title) => title !== "Favorit" && title !== "Recents Watch"
-  );
+  const groupTitles = Object.keys(groupedChannels).filter((title) => title !== "Recents Watch");
 
   useEffect(() => {
     const updateLayout = () => {
-      const { width } = Dimensions.get('window');
-      const columns = Math.floor(width / 120); // Misalnya, setiap item minimal 120px
+      const { width } = Dimensions.get("window");
+      const columns = Math.min(Math.floor(width / 100), 6);
       setNumColumns(columns);
-      setItemSize(width / columns - 16); // 16 adalah margin dan padding
+      setItemSize(width / columns - 16);
     };
 
     updateLayout();
 
-    const subscription = Dimensions.addEventListener('change', updateLayout);
+    const subscription = Dimensions.addEventListener("change", updateLayout);
     return () => subscription?.remove();
   }, []);
 
-  
-  const renderChannel = ({ item }: { item: any }) => {
+  const renderChannel = ({ item, index }) => {
     const isFocused = focusedChannel === item?.url;
-    const isFavoriteFocused = focusedFavorite === item?.url;
-    const isFavorite = favoriteChannels.has(item?.url);
-    const logoUri =
-      item?.tvg?.logo && /^(http|https):\/\//.test(item.tvg.logo)
-        ? { uri: item.tvg.logo }
-        : defaultLogo;
+    const logoUri = item?.tvg?.logo && /^(http|https):\/\//.test(item.tvg.logo) ? { uri: item.tvg.logo } : defaultLogo;
 
     const truncatedName = item?.name?.length > 12 ? `${item.name.slice(0, 12)}...` : item?.name;
 
     return (
       <Pressable
+        ref={(ref) => (channelRefs.current[item.url] = ref)} // Store ref
         focusable={true}
-        onFocus={() => setFocusedChannel(item?.url)}
+        onFocus={() => {
+          setFocusedChannel(item?.url);
+          channelRefs.current[item.url]?.setNativeProps({ style: { borderColor: "#ffaa00" } }); // Update border color
+        }}
+        onBlur={() => {
+          setFocusedChannel(null);
+          channelRefs.current[item.url]?.setNativeProps({ style: { borderColor: "#24538e" } }); // Revert border color
+        }}
         onPress={() => handleChannelPress(item)}
         style={[
           styles.channelContainer,
           isFocused && styles.focusedChannel,
-          { width: itemSize, height: itemSize }
+          { width: itemSize, height: itemSize },
         ]}
       >
         <Image source={logoUri} style={styles.channelLogo} />
         <Text style={styles.channelName}>{truncatedName}</Text>
-
-        {/* Tombol Favorite */}
-        <Pressable
-          focusable={true}
-          onFocus={() => setFocusedFavorite(item?.url)}
-          onBlur={() => setFocusedFavorite(null)}
-          onPress={() => handleFavoriteToggle(item)}
-          style={[
-            styles.favoriteButton,
-            isFavoriteFocused && styles.focusedFavoriteButton,
-          ]}
-        >
-          <Icon
-            name={isFavorite ? "favorite" : "favorite-border"}
-            size={24}
-            color={isFavorite ? "#ff4081" : "#0A0B00"}
-          />
-        </Pressable>
       </Pressable>
     );
   };
-  
-  const renderGroupItem = ({ item }: { item: string }) => {
+
+  const renderGroupItem = ({ item }) => {
     const isFocused = focusedGroup === item;
     return (
       <Pressable
@@ -302,52 +233,53 @@ const HomeScreen = () => {
     );
   };
 
+  const getItemLayout = (data, index) => {
+    return {
+      length: itemSize + 16, // itemSize + margins
+      offset: (itemSize + 16) * index,
+      index,
+    };
+  };
+
   return (
     <View style={styles.container}>
       <Menu
         onReloadPress={handleReload}
         onExitPress={handleExit}
         onSettingsPress={handleSettings}
-        onFavoritesPress={handleFavoritesPress}
         onRecentWatchPress={handleRecentWatchPress}
         isReloading={isReloading}
       />
       {isLoading ? (
-        <LottieView
-          source={require("../../assets/animasi/loading.json")}
-          autoPlay
-          loop
-          style={styles.loadingIndicator}
-        />
+        <LottieView source={require("../../assets/animasi/loading.json")} autoPlay loop style={styles.loadingIndicator} />
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <View style={styles.content}>
-          {/* Sidebar: Group List */}
           <View style={styles.sidebar}>
             <FlatList
               data={groupTitles}
               renderItem={renderGroupItem}
               keyExtractor={(item) => item}
+              getItemLayout={(data, index) => ({
+                length: 60,
+                offset: 60 * index,
+                index,
+              })}
             />
           </View>
-          {/* Main Area: Channel List */}
           <View style={styles.mainContent}>
-            <ImageBackground
-              source={require("../../assets/images/foreground.png")}
-              style={styles.backgroundImage}
-            >
+            <ImageBackground source={require("../../assets/images/foreground.png")} style={styles.backgroundImage}>
               {selectedGroup ? (
                 <FlatList
                   data={groupedChannels[selectedGroup] || []}
                   renderItem={renderChannel}
-                  keyExtractor={(item) => item.id ? item.id.toString() : `${item.url}-${item.name}`}
+                  keyExtractor={(item) => (item.id ? item.id.toString() : `${item.url}-${item.name}`)}
                   numColumns={numColumns}
+                  getItemLayout={getItemLayout} // Add this for performance
                 />
               ) : (
-                <Text style={styles.noGroupText}>
-                  Select a Group to see Channels
-                </Text>
+                <Text style={styles.noGroupText}>Select a Group to see Channels</Text>
               )}
             </ImageBackground>
           </View>
@@ -356,7 +288,6 @@ const HomeScreen = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -368,7 +299,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sidebar: {
-    width: 220,
+    width: "20%",
     padding: 10,
     backgroundColor: "#020f1f",
     borderRightWidth: 1,
@@ -383,16 +314,17 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   channelContainer: {
+    width: "80%",
     alignItems: "center",
     justifyContent: "center",
-    margin: 8,
+    margin: 4,
     backgroundColor: "#24538e",
     borderRadius: 8,
-    padding: 10,
+    padding: 5,
   },
   channelLogo: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: 8,
     marginBottom: 8,
     resizeMode: "contain",
@@ -405,22 +337,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginTop: 5,
-  },
-  favoriteButton: {
-    position: "absolute",
-    top: -2,
-    right: -2,
-    padding: 2,
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  focusedFavoriteButton: {
-    backgroundColor: "#D2F201",
-    borderRadius: 50,
-    padding: 2,
-    justifyContent: "center",
-    alignItems: "center",
   },
   noGroupText: {
     textAlign: "center",
@@ -445,7 +361,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     resizeMode: "cover",
     maxHeight: 100,
-
   },
   errorText: {
     color: "#EC1818",

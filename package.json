@@ -1,6 +1,6 @@
 {
   "name": "Chesko_TV",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "start": "cross-env EXPO_TV=1 expo start",
     "android": "cross-env EXPO_TV=1 expo run:android",
@@ -51,7 +51,7 @@
     "@types/react": "~18.3.12",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "~5.3.3"
+    "typescript": "^5.8.2"
   },
   "expo": {
     "install": {

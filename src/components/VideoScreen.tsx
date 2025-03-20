@@ -244,9 +244,6 @@ const VideoScreen: React.FC = () => {
       setVideoResolutions(video);
       setAudioResolutions(audio);
 
-     // console.log("Video Resolutions: ", video);
-      //console.log("Audio Resolutions: ", audio);
-
       if (video.length > 0) {
         const lowestResolution = video.reduce((prev, curr) =>
           curr.bandwidth < prev.bandwidth ? curr : prev
@@ -262,40 +259,30 @@ const VideoScreen: React.FC = () => {
     const streamType = detectStreamType(channel.url);
     if (streamType === 'dash') {
       const licenseType = "widevine";
-      const licenseKey = "https://mrpw.ptmnc01.verspective.net/?deviceId=MDA5MmI1NjctOWMyMS0zNDYyLTk0NDAtODM5NGQ1ZjdlZWRi"; // Hardcode license_key
+      const licenseKey = "https://mrpw.ptmnc01.verspective.net/?deviceId=MDA5MmI1NjctOWMyMS0zNDYyLTk0NDAtODM5NGQ1ZjdlZWRi";
       return getDRMType(licenseType, licenseKey);
     }
     return undefined;
   }, [channel.url]);
 
   const getVideoSource = () => {
-    const selectedVideo = videoResolutions.find(res => res.id === selectedResolution);
-    const selectedAudioTrack = audioResolutions.find(res => res.id === selectedAudio);
+    const selectedVideo = videoResolutions.find((res) => res.id === selectedResolution);
+    const selectedAudioTrack = audioResolutions.find((res) => res.id === selectedAudio);
 
-    if (selectedVideo) {
-      return {
-        uri: `${channel.url}?resolution=${selectedVideo.id}`,
-        headers: {
-          Referer: channel.headers?.Referer,
-          "User-Agent": channel.headers?.["User-Agent"],
-        },
-        drm: drmConfig,
-        audioTrack: selectedAudioTrack ? {
-          id: selectedAudioTrack.id,
-          language: "und",
-        } : undefined,
-      };
-    }
+    const uri = selectedVideo
+      ? `${channel.url}?resolution=${selectedVideo.id}`
+      : channel.url;
+
     return {
-      uri: channel.url,
+      uri,
       headers: {
         Referer: channel.headers?.Referer,
         "User-Agent": channel.headers?.["User-Agent"],
       },
       drm: drmConfig,
+      audioTrack: selectedAudioTrack ? { id: selectedAudioTrack.id, language: "und" } : undefined,
     };
   };
-
 
   const handleResolutionChange = (resolutionId) => {
     if (resolutionId !== selectedResolution) {
@@ -303,7 +290,6 @@ const VideoScreen: React.FC = () => {
       reloadVideo();
     }
   }
-
   const handleAudioChange = (audioId) => {
     if (audioId !== selectedAudio) {
       setSelectedAudio(audioId);

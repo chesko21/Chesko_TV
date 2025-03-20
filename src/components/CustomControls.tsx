@@ -41,7 +41,7 @@ const CustomControls = ({
     if (height <= 480) return '480p';
     if (height <= 720) return '720p';
     if (height <= 1080) return '1080p';
-    return `${height}p`; 
+    return `${height}p`;
   };
 
 
@@ -272,7 +272,7 @@ const CustomControls = ({
             </View>
           </View>
         </Modal>
-        
+
         {/* Modal untuk Audio Tracks */}
         <Modal
           transparent
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     width: "30%",
     position: 'relative',
     bottom: 10,
-    
+
   },
   controlButton: {
     padding: 5,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   selectedItem: {
-    backgroundColor:  "rgba(43, 11, 185, 0.8)",
+    backgroundColor: "rgba(43, 11, 185, 0.8)",
   },
   resolutionText: {
     fontSize: 12,

@@ -14,71 +14,59 @@ import { View, Text, StyleSheet, Platform } from "react-native";
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import * as NavigationBar from "expo-navigation-bar"; 
 
-
 const Stack = createStackNavigator();
 
 export default function App() {
   const [isOnline, setIsOnline] = useState(true);
-  const visibility = NavigationBar.useVisibility()
 
-
-useEffect(() => {
-  const lockOrientation = async () => {
-    await ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE
-    );
-  };
-  lockOrientation();
-
-  if (Platform.OS === "android") {
-    NavigationBar.setVisibilityAsync("hidden");
-    NavigationBar.setBackgroundColorAsync("#000000");
-  }
-
-  return () => {
-    ScreenOrientation.unlockAsync();
-    if (Platform.OS === "android") {
-      NavigationBar.setVisibilityAsync("visible");
-    }
-  };
-}, []);
   useEffect(() => {
-    NetInfo.fetch().then((state) => {
+    const lockOrientation = async () => {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    };
+    lockOrientation();
+
+    if (Platform.OS === "android") {
+      NavigationBar.setVisibilityAsync("hidden");
+      NavigationBar.setBackgroundColorAsync("#000000");
+    }
+
+    return () => {
+      ScreenOrientation.unlockAsync();
+      if (Platform.OS === "android") {
+        NavigationBar.setVisibilityAsync("visible");
+      }
+    };
+  }, []);
+
+  // Check for internet connectivity
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected);
       if (!state.isConnected) {
-        setIsOnline(false);
         Toast.show({
           type: "error",
           position: "top",
           text1: "No internet connection",
           text2: "Please check your network.",
         });
-      } else {
-        setIsOnline(true);
       }
     });
 
     return () => {
-      Toast.hide();
+      unsubscribe();
     };
   }, []);
 
-  // Fungsi untuk meminta izin
+  // Request permissions for storage access
   const requestPermissions = async () => {
     if (Platform.OS === "android") {
       const readStorage = await check(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
       const writeStorage = await check(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
-
-      if (readStorage !== RESULTS.GRANTED) {
-        await request(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
-      }
-      if (writeStorage !== RESULTS.GRANTED) {
-        await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
-      }
+      if (readStorage !== RESULTS.GRANTED) await request(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+      if (writeStorage !== RESULTS.GRANTED) await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
     } else if (Platform.OS === "ios") {
       const photoLibrary = await check(PERMISSIONS.IOS.PHOTO_LIBRARY);
-      if (photoLibrary !== RESULTS.GRANTED) {
-        await request(PERMISSIONS.IOS.PHOTO_LIBRARY);
-      }
+      if (photoLibrary !== RESULTS.GRANTED) await request(PERMISSIONS.IOS.PHOTO_LIBRARY);
     }
   };
 
@@ -86,6 +74,7 @@ useEffect(() => {
     requestPermissions();
   }, []);
 
+  // Display error message when offline
   if (!isOnline) {
     return (
       <View style={styles.container}>
